@@ -364,8 +364,9 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
             for col in numeric_columns
         }
 
-        valid_class_plus = grouped_data.loc[grouped_data["xRV+"] != "N/A", "xRV+"].astype(float)
-        valid_class_plus_weights = grouped_data.loc[grouped_data["xRV+"] != "N/A", "Count"]
+        valid_class_plus = grouped_data["xRV+"].dropna()
+        valid_class_plus_weights = grouped_data.loc[grouped_data["xRV+"].notna(), "Count"]
+
         class_plus_weighted_avg = (
             np.average(valid_class_plus, weights=valid_class_plus_weights) if not valid_class_plus.empty else np.nan
         )
