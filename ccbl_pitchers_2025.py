@@ -345,8 +345,8 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
             left_on="Pitch",
             right_on="TaggedPitchType"
         )
-        
-        grouped_data["xRV+"] = pd.to_numeric(grouped_data["xRV+"], errors="coerce").fillna("N/A")
+        grouped_data["xRV+"] = pd.to_numeric(grouped_data["xRV+"], errors="coerce")
+
 
        
         
