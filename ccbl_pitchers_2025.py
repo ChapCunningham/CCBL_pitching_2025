@@ -359,10 +359,13 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
         grouped_data = grouped_data.sort_values(by='Count', ascending=False)
         total_count = grouped_data["Count"].sum()
         weighted_averages = {
-            col: np.average(grouped_data[col].dropna(), weights=grouped_data["Count"].loc[grouped_data[col].notna()])
-            if grouped_data[col].notna().any() else "N/A"
+            col: np.average(
+                grouped_data[col].dropna(),
+                weights=grouped_data.loc[grouped_data[col].notna(), "Count"]
+            ) if grouped_data[col].notna().any() else np.nan
             for col in numeric_columns
         }
+
 
         valid_class_plus = grouped_data["xRV+"].dropna()
         valid_class_plus_weights = grouped_data.loc[grouped_data["xRV+"].notna(), "Count"]
