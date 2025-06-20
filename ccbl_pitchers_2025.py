@@ -19,7 +19,7 @@ def load_data(file_path):
     return df
 
 # File path for 2025 Season data
-season_file_path = "CCBL_2025_Master.csv"
+season_file_path = "CCBL_2025_Master_w_RV.csv"
 season_df = load_data(season_file_path)
 #season_df = season_df[season_df['PitcherTeam'] == 'BRE_WHI']
 
