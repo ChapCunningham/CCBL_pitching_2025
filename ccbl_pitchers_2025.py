@@ -330,6 +330,10 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
         
         
 
+        
+        # === NEW: Add run value totals per pitch ===
+        run_value_sum = pitcher_data.groupby('TaggedPitchType')['run_value'].sum()
+
         # Clean and round numeric columns
         rename_columns = {
             'TaggedPitchType': 'Pitch',
@@ -343,10 +347,10 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
             'VertApprAngle': 'VAA'
         }
         
-        # === NEW: Add run value totals per pitch ===
-        run_value_sum = pitcher_data.groupby('TaggedPitchType')['run_value'].sum()
-        grouped_data = grouped_data.merge(run_value_sum.rename('RV'), left_on='Pitch', right_index=True, how='left')
+        
+        
         grouped_data = grouped_data.rename(columns=rename_columns)
+        grouped_data = grouped_data.merge(run_value_sum.rename('RV'), left_on='Pitch', right_index=True, how='left')
         
         # Merge with CLASS+ data (2025 only)
         filtered_class_plus = season_class_plus_df[season_class_plus_df["Pitcher"] == pitcher_name]
@@ -358,7 +362,9 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
             right_on="TaggedPitchType"
         )
         grouped_data["xRV+"] = pd.to_numeric(grouped_data["xRV+"], errors="coerce")
-
+       
+        
+        
 
        
         
