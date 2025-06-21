@@ -362,7 +362,7 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
 
        
         
-        numeric_columns = ['Velo', 'iVB', 'HB', 'Spin', 'RelH', 'RelS', 'Ext', 'VAA']
+        numeric_columns = ['Velo', '10thVel', '90thVel', 'MaxVel', 'iVB', 'HB', 'Spin', 'RelH', 'RelS', 'Ext', 'VAA']
         for col in numeric_columns:
             grouped_data[col] = pd.to_numeric(grouped_data[col], errors='coerce')
         grouped_data[numeric_columns] = grouped_data[numeric_columns].round(1)
