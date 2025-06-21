@@ -312,6 +312,7 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
         grouped_data = pitcher_data.groupby('TaggedPitchType').agg(
             Count=('TaggedPitchType', 'size'),
             RelSpeed=('RelSpeed', 'mean'),
+            
             InducedVertBreak=('InducedVertBreak', 'mean'),
             HorizontalBreak=('HorzBreak', 'mean'),
             SpinRate=('SpinRate', 'mean'),
@@ -320,6 +321,12 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
             Extension=('Extension', 'mean'),
             VertApprAngle=('VertApprAngle', 'mean')
         ).reset_index()
+
+        # === NEW: Add 10th, 90th, and Max velocity ===
+        percentiles = pitcher_data.groupby('TaggedPitchType')['RelSpeed'].quantile([0.1, 0.9]).unstack()
+        max_vel = pitcher_data.groupby('TaggedPitchType')['RelSpeed'].max()
+        grouped_data = grouped_data.merge(percentiles.rename(columns={0.1: '10thVel', 0.9: '90thVel'}), left_on='TaggedPitchType', right_index=True, how='left')
+        grouped_data = grouped_data.merge(max_vel.rename('MaxVel'), left_on='TaggedPitchType', right_index=True, how='left')
         
         
 
@@ -335,7 +342,12 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
             'Extension': 'Ext',
             'VertApprAngle': 'VAA'
         }
+        
+        # === NEW: Add run value totals per pitch ===
+        run_value_sum = pitcher_data.groupby('TaggedPitchType')['run_value'].sum()
+        grouped_data = grouped_data.merge(run_value_sum.rename('RV'), left_on='Pitch', right_index=True, how='left')
         grouped_data = grouped_data.rename(columns=rename_columns)
+        
         # Merge with CLASS+ data (2025 only)
         filtered_class_plus = season_class_plus_df[season_class_plus_df["Pitcher"] == pitcher_name]
         grouped_data = pd.merge(
@@ -378,6 +390,9 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
             'Pitch': 'All',
             'Count': total_count,
             'Velo': round(weighted_averages['Velo'], 1) if pd.notna(weighted_averages['Velo']) else 'N/A',
+            '10thVel': round(weighted_averages['10thVel'], 1) if pd.notna(weighted_averages['10thVel']) else 'N/A',
+            '90thVel': round(weighted_averages['90thVel'], 1) if pd.notna(weighted_averages['90thVel']) else 'N/A',
+            'MaxVel': round(weighted_averages['MaxVel'], 1) if pd.notna(weighted_averages['MaxVel']) else 'N/A',
             'iVB': round(weighted_averages['iVB'], 1) if pd.notna(weighted_averages['iVB']) else 'N/A',
             'HB': round(weighted_averages['HB'], 1) if pd.notna(weighted_averages['HB']) else 'N/A',
             'Spin': round(weighted_averages['Spin'], 1) if pd.notna(weighted_averages['Spin']) else 'N/A',
@@ -385,7 +400,8 @@ def generate_pitch_traits_table(pitcher_name, batter_side, strikes, balls, date_
             'RelS': round(weighted_averages['RelS'], 1) if pd.notna(weighted_averages['RelS']) else 'N/A',
             'Ext': round(weighted_averages['Ext'], 1) if pd.notna(weighted_averages['Ext']) else 'N/A',
             'VAA': round(weighted_averages['VAA'], 1) if pd.notna(weighted_averages['VAA']) else 'N/A',
-            'xRV+': round(class_plus_weighted_avg, 1) if pd.notna(class_plus_weighted_avg) else "N/A"
+            'xRV+': round(class_plus_weighted_avg, 1) if pd.notna(class_plus_weighted_avg) else "N/A",
+            'RV': round(pitcher_data['run_value'].sum(), 1) if 'run_value' in pitcher_data.columns else "N/A"
 
 
         }
