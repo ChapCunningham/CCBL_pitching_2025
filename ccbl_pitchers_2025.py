@@ -678,6 +678,9 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
         # Display the plot in Streamlit
         st.plotly_chart(fig, use_container_width=True)
 
+        return fig, movement_data
+
+
     except Exception as e:
         st.error(f"An error occurred while generating the pitch movement graph: {e}")
 
@@ -1247,6 +1250,49 @@ plot_pitch_movement(
     start_date, 
     end_date
 )
+# --- Plot the pitch movement graph and get the figure + data
+fig, movement_data = plot_pitch_movement(
+    pitcher_name, 
+    batter_side, 
+    strikes, 
+    balls, 
+    date_filter_option, 
+    selected_date, 
+    start_date, 
+    end_date
+)
+
+# --- Capture user-selected points from the Plotly chart
+selected_points = st.plotly_chart(
+    fig,
+    use_container_width=True,
+    config={'displayModeBar': True, 'displaylogo': False},
+    height=700,
+    key="pitch_movement_plot",
+)
+
+# --- Use Plotly events via Streamlit's native `plotly_events` (you'll need `streamlit-plotly-events`)
+from streamlit_plotly_events import plotly_events
+selected = plotly_events(fig, click_event=False, select_event=True, override_height=700)
+
+# --- Show data table for selected pitches
+if selected:
+    selected_indices = [pt["pointIndex"] for pt in selected]
+    selected_df = movement_data.iloc[selected_indices]
+
+    # Optional: RelSpeed filter slider
+    min_speed = selected_df["RelSpeed"].min()
+    max_speed = selected_df["RelSpeed"].max()
+    speed_range = st.slider("Filter by RelSpeed", min_value=float(min_speed), max_value=float(max_speed), value=(float(min_speed), float(max_speed)))
+
+    filtered_selected_df = selected_df[
+        (selected_df["RelSpeed"] >= speed_range[0]) &
+        (selected_df["RelSpeed"] <= speed_range[1])
+    ]
+
+    st.subheader("Selected Pitches")
+    st.dataframe(filtered_selected_df)
+
 
 
 # Generate rolling line graphs based on selected metrics and pitch types
