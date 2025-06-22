@@ -679,7 +679,7 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
         st.plotly_chart(fig, use_container_width=True)
         
 
-        return fig, movement_data
+        
 
 
     except Exception as e:
