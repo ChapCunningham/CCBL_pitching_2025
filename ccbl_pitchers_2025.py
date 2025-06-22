@@ -573,9 +573,7 @@ color_dict = {
 import plotly.express as px
 import plotly.graph_objects as go
 
-import plotly.graph_objects as go
 
-import plotly.graph_objects as go
 
 def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
     try:
@@ -1252,17 +1250,7 @@ plot_pitch_movement(
     end_date
 )
 
-# --- Plot the pitch movement graph and get the figure + data
-fig, movement_data = plot_pitch_movement(
-    pitcher_name, 
-    batter_side, 
-    strikes, 
-    balls, 
-    date_filter_option, 
-    selected_date, 
-    start_date, 
-    end_date
-)
+
 
 
 # Generate rolling line graphs based on selected metrics and pitch types
