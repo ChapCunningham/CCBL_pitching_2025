@@ -1251,14 +1251,15 @@ fig, movement_data = plot_pitch_movement(
     end_date
 )
 
-# --- Capture user-selected points from the Plotly chart
-selected_points = st.plotly_chart(
+from streamlit_plotly_events import plotly_events
+selected = plotly_events(
     fig,
-    use_container_width=True,
-    config={'displayModeBar': True, 'displaylogo': False},
-    height=700,
-    key="pitch_movement_plot",
+    click_event=False,
+    select_event=True,
+    override_height=700,
+    key="pitch_movement_plot"
 )
+
 
 # --- Use Plotly events via Streamlit's native `plotly_events` (you'll need `streamlit-plotly-events`)
 from streamlit_plotly_events import plotly_events
