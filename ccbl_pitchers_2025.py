@@ -9,6 +9,19 @@ from datetime import datetime
 import plotly.express as px
 import plotly.graph_objects as go
 
+import gdown
+import os
+
+@st.cache_data
+def download_csv_from_drive():
+    url = "https://drive.google.com/uc?id=1YjTE25-tq6EsVyU237y7fDH2ldqdLOJ9"
+    output = "CCBL_2025_Master_w_RV_Fixed.csv"
+    if not os.path.exists(output):
+        gdown.download(url, output, quiet=False)
+    return output
+
+
+
 # === LOAD DATA ===
 @st.cache_data
 def load_data(file_path):
