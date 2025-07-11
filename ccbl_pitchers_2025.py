@@ -20,6 +20,13 @@ def download_csv_from_drive():
         gdown.download(url, output, quiet=False)
     return output
 
+@st.cache_data
+def download_rolling_csv_from_drive():
+    url = "https://drive.google.com/uc?id=1Z9u0_-EOO7kQwHSBn2HG0zs0tk5qgTyA"
+    output = "CCBL_2025_xRV+_by_date.csv"
+    if not os.path.exists(output):
+        gdown.download(url, output, quiet=False)
+    return output
 
 
 # === LOAD DATA ===
@@ -32,7 +39,7 @@ def load_data(file_path):
     return df
 
 # File path for 2025 Season data
-season_file_path = "CCBL_2025_Master_w_RV_Fixed.csv"
+season_file_path = download_csv_from_drive()
 season_df = load_data(season_file_path)
 #season_df = season_df[season_df['PitcherTeam'] == 'BRE_WHI']
 
@@ -44,7 +51,7 @@ for col in numeric_columns:
     season_df[col] = pd.to_numeric(season_df[col], errors='coerce')
 
 # === LOAD ROLLING AND xRV+ DATA ===
-rolling_path = "CCBL_2025_xRV+_by_date.csv"
+rolling_path = download_rolling_csv_from_drive()
 class_plus_path = "CCBL_2025_xRV+.csv"
 
 rolling_df = load_data(rolling_path)
