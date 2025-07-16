@@ -777,7 +777,8 @@ def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_f
         batted_ball_summary['Soft%'] = ((batted_ball_summary['Soft'] / batted_ball_summary['BIP']) * 100).round(1).astype(str) + '%'
 
         # Derived stats
-        batted_ball_summary['BAA'] = (batted_ball_summary['Hits'] / batted_ball_summary['BIP']).fillna(0).round(3)
+        batted_ball_summary['BABIP'] = (batted_ball_summary['Hits'] / batted_ball_summary['BIP']).fillna(0).round(3)
+        batted_ball_summary['BAA'] = (batted_ball_summary['Hits'] / batted_ball_summary['AB']).fillna(0).round(3)
         batted_ball_summary['OBP'] = (
             (batted_ball_summary['Hits'] + batted_ball_summary['Walks'] + batted_ball_summary['HBP']) /
             (batted_ball_summary['AB'] + batted_ball_summary['Walks'] + batted_ball_summary['HBP'])
@@ -817,7 +818,8 @@ def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_f
             'Soft%': 'Soft%',
             'Contact%': 'Contact%',
             'BAA': 'BAA',
-            'OPS': 'OPS'
+            'OPS': 'OPS',
+            'BABIP': 'BABIP'
         })
 
         # === "All" Row ===
@@ -836,7 +838,8 @@ def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_f
         obp = (total_hits + total_bb + total_hbp) / (total_ab + total_bb + total_hbp) if (total_ab + total_bb + total_hbp) > 0 else 0
         slg = total_tb / total_ab if total_ab > 0 else 0
         ops = obp + slg
-        baa = total_hits / total_bip if total_bip > 0 else 0
+        babip = total_hits / total_bip if total_bip > 0 else 0
+        baa = total_hits / total_ab if total_ab > 0 else 0
 
         all_row = {
             'Pitch': 'All',
@@ -849,7 +852,8 @@ def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_f
             'Soft%': f"{round((batted_data['ExitSpeed'] < 95).sum() / total_bip * 100, 1) if total_bip > 0 else 0}%",
             'Contact%': f"{round(calculate_contact(pitcher_data), 1)}%",
             'BAA': round(baa, 3),
-            'OPS': round(ops, 3)
+            'OPS': round(ops, 3),
+            'BABIP': round(babip, 3)
         }
 
         # Append and display
