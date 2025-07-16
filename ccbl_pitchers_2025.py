@@ -708,17 +708,25 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
 
 
 
-# Function to generate the Batted Ball table
 def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date):
     try:
-        # Filter data based on the provided filters
+        # Filter data
         pitcher_data = filter_data(pitcher_name, batter_side, strikes, balls, date_filter_option, selected_date, start_date, end_date)
-
         if pitcher_data.empty:
             st.write("No data available for the selected parameters.")
             return
 
-        # Categorize batted balls into types based on angle
+        # Outcome flags
+        pitcher_data['Hit'] = pitcher_data['PlayResult'].isin(['Single', 'Double', 'Triple', 'HomeRun'])
+        pitcher_data['1B'] = pitcher_data['PlayResult'] == 'Single'
+        pitcher_data['2B'] = pitcher_data['PlayResult'] == 'Double'
+        pitcher_data['3B'] = pitcher_data['PlayResult'] == 'Triple'
+        pitcher_data['HR'] = pitcher_data['PlayResult'] == 'HomeRun'
+        pitcher_data['BB'] = pitcher_data['KorBB'] == 'Walk'
+        pitcher_data['HBP'] = pitcher_data['PitchCall'] == 'HitByPitch'
+        pitcher_data['AB'] = pitcher_data['PitchCall'].eq('InPlay') | pitcher_data['KorBB'].eq('Strikeout')
+
+        # Batted ball classification
         def categorize_batted_type(angle):
             if angle < 10:
                 return "GroundBall"
@@ -729,60 +737,76 @@ def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_f
             else:
                 return "PopUp"
 
-        # Create 'BattedType' column
         pitcher_data['BattedType'] = pitcher_data['Angle'].apply(categorize_batted_type)
-
-        # Filter rows where PitchCall is 'InPlay' for BIP calculations
         batted_data = pitcher_data[pitcher_data['PitchCall'] == 'InPlay']
 
-        # Group by pitch type and calculate metrics
+        # Group and aggregate
         batted_ball_summary = batted_data.groupby('TaggedPitchType').agg(
             BIP=('PitchCall', 'size'),
             GB=('BattedType', lambda x: (x == "GroundBall").sum()),
             FB=('BattedType', lambda x: (x == "FlyBall").sum()),
             EV=('ExitSpeed', 'mean'),
             Hard=('ExitSpeed', lambda x: (x >= 95).sum()),
-            Soft=('ExitSpeed', lambda x: (x < 95).sum())
+            Soft=('ExitSpeed', lambda x: (x < 95).sum()),
+            Hits=('Hit', 'sum'),
+            Walks=('BB', 'sum'),
+            HBP=('HBP', 'sum'),
+            _1B=('1B', 'sum'),
+            _2B=('2B', 'sum'),
+            _3B=('3B', 'sum'),
+            HR=('HR', 'sum'),
+            AB=('AB', 'sum')
         ).reset_index()
 
-        # Ensure all pitch types are included
+        # Ensure all pitch types included
         unique_pitch_types = pitcher_data['TaggedPitchType'].unique()
         full_summary = pd.DataFrame({'TaggedPitchType': unique_pitch_types})
         batted_ball_summary = pd.merge(full_summary, batted_ball_summary, on='TaggedPitchType', how='left')
 
-        # Fill missing values with defaults
-        batted_ball_summary[['BIP', 'GB', 'FB', 'EV', 'Hard', 'Soft']] = batted_ball_summary[
-            ['BIP', 'GB', 'FB', 'EV', 'Hard', 'Soft']
-        ].fillna(0)
+        # Fill missing
+        batted_ball_summary.fillna(0, inplace=True)
 
-        # Add total pitch counts for each type
+        # Add pitch count
         pitch_counts = pitcher_data.groupby('TaggedPitchType')['PitchCall'].count().reset_index(name='Count')
         batted_ball_summary = pd.merge(batted_ball_summary, pitch_counts, on='TaggedPitchType', how='left')
 
-        # Calculate percentages
-        batted_ball_summary['GB%'] = ((batted_ball_summary['GB'] / batted_ball_summary['BIP']) * 100).fillna(0).round(1).astype(str) + '%'
-        batted_ball_summary['FB%'] = ((batted_ball_summary['FB'] / batted_ball_summary['BIP']) * 100).fillna(0).round(1).astype(str) + '%'
-        batted_ball_summary['Hard%'] = ((batted_ball_summary['Hard'] / batted_ball_summary['BIP']) * 100).fillna(0).round(1).astype(str) + '%'
-        batted_ball_summary['Soft%'] = ((batted_ball_summary['Soft'] / batted_ball_summary['BIP']) * 100).fillna(0).round(1).astype(str) + '%'
+        # Percentages
+        batted_ball_summary['GB%'] = ((batted_ball_summary['GB'] / batted_ball_summary['BIP']) * 100).round(1).astype(str) + '%'
+        batted_ball_summary['FB%'] = ((batted_ball_summary['FB'] / batted_ball_summary['BIP']) * 100).round(1).astype(str) + '%'
+        batted_ball_summary['Hard%'] = ((batted_ball_summary['Hard'] / batted_ball_summary['BIP']) * 100).round(1).astype(str) + '%'
+        batted_ball_summary['Soft%'] = ((batted_ball_summary['Soft'] / batted_ball_summary['BIP']) * 100).round(1).astype(str) + '%'
 
-        # Calculate Contact%
+        # Derived stats
+        batted_ball_summary['BAA'] = (batted_ball_summary['Hits'] / batted_ball_summary['BIP']).fillna(0).round(3)
+        batted_ball_summary['OBP'] = (
+            (batted_ball_summary['Hits'] + batted_ball_summary['Walks'] + batted_ball_summary['HBP']) /
+            (batted_ball_summary['AB'] + batted_ball_summary['Walks'] + batted_ball_summary['HBP'])
+        ).fillna(0)
+        batted_ball_summary['TB'] = (
+            batted_ball_summary['_1B'] +
+            2 * batted_ball_summary['_2B'] +
+            3 * batted_ball_summary['_3B'] +
+            4 * batted_ball_summary['HR']
+        )
+        batted_ball_summary['SLG'] = (batted_ball_summary['TB'] / batted_ball_summary['AB']).fillna(0)
+        batted_ball_summary['OPS'] = (batted_ball_summary['OBP'] + batted_ball_summary['SLG']).round(3)
+
+        # Contact%
         def calculate_contact(df):
             swings = df[df['PitchCall'].isin(['StrikeSwinging', 'InPlay', 'FoulBallNotFieldable', 'FoulBallFieldable'])].shape[0]
             contact = df[df['PitchCall'].isin(['InPlay', 'FoulBallNotFieldable', 'FoulBallFieldable'])].shape[0]
             return (contact / swings * 100) if swings > 0 else 0
 
-        contact_values = []
-        for pitch_type in batted_ball_summary['TaggedPitchType']:
-            contact_values.append(
-                calculate_contact(pitcher_data[pitcher_data['TaggedPitchType'] == pitch_type])
-            )
-        batted_ball_summary['Contact%'] = [f"{round(val, 1)}%" for val in contact_values]
+        batted_ball_summary['Contact%'] = [
+            f"{round(calculate_contact(pitcher_data[pitcher_data['TaggedPitchType'] == pt]), 1)}%"
+            for pt in batted_ball_summary['TaggedPitchType']
+        ]
 
-        # Drop intermediate columns
-        batted_ball_summary = batted_ball_summary.drop(columns=['GB', 'FB', 'Hard', 'Soft'])
+        # Drop helper cols
+        batted_ball_summary.drop(columns=['GB', 'FB', 'Hard', 'Soft', 'Hits', 'Walks', 'HBP', '_1B', '_2B', '_3B', 'HR', 'AB', 'OBP', 'SLG', 'TB'], inplace=True)
 
-        # Rename columns for display
-        rename_columns = {
+        # Rename columns
+        batted_ball_summary = batted_ball_summary.rename(columns={
             'TaggedPitchType': 'Pitch',
             'Count': 'Count',
             'BIP': 'BIP',
@@ -791,34 +815,52 @@ def generate_batted_ball_table(pitcher_name, batter_side, strikes, balls, date_f
             'FB%': 'FB%',
             'Hard%': 'Hard%',
             'Soft%': 'Soft%',
-            'Contact%': 'Contact%'
-        }
-        batted_ball_summary = batted_ball_summary.rename(columns=rename_columns)
+            'Contact%': 'Contact%',
+            'BAA': 'BAA',
+            'OPS': 'OPS'
+        })
 
-        # Calculate "All" row
+        # === "All" Row ===
+        total_hits = pitcher_data['Hit'].sum()
+        total_bip = batted_data.shape[0]
+        total_ab = pitcher_data['AB'].sum()
+        total_bb = pitcher_data['BB'].sum()
+        total_hbp = pitcher_data['HBP'].sum()
+        total_tb = (
+            pitcher_data['1B'].sum() +
+            2 * pitcher_data['2B'].sum() +
+            3 * pitcher_data['3B'].sum() +
+            4 * pitcher_data['HR'].sum()
+        )
+
+        obp = (total_hits + total_bb + total_hbp) / (total_ab + total_bb + total_hbp) if (total_ab + total_bb + total_hbp) > 0 else 0
+        slg = total_tb / total_ab if total_ab > 0 else 0
+        ops = obp + slg
+        baa = total_hits / total_bip if total_bip > 0 else 0
+
         all_row = {
             'Pitch': 'All',
             'Count': pitcher_data.shape[0],
-            'BIP': batted_data.shape[0],
-            'EV': batted_data['ExitSpeed'].mean() if batted_data.shape[0] > 0 else 0,
-            'GB%': f"{round((batted_data['BattedType'] == 'GroundBall').sum() / batted_data.shape[0] * 100, 1) if batted_data.shape[0] > 0 else 0}%",
-            'FB%': f"{round((batted_data['BattedType'] == 'FlyBall').sum() / batted_data.shape[0] * 100, 1) if batted_data.shape[0] > 0 else 0}%",
-            'Hard%': f"{round((batted_data['ExitSpeed'] >= 95).sum() / batted_data.shape[0] * 100, 1) if batted_data.shape[0] > 0 else 0}%",
-            'Soft%': f"{round((batted_data['ExitSpeed'] < 95).sum() / batted_data.shape[0] * 100, 1) if batted_data.shape[0] > 0 else 0}%",
-            'Contact%': f"{round(calculate_contact(pitcher_data), 1)}%"
+            'BIP': total_bip,
+            'EV': batted_data['ExitSpeed'].mean() if total_bip > 0 else 0,
+            'GB%': f"{round((batted_data['BattedType'] == 'GroundBall').sum() / total_bip * 100, 1) if total_bip > 0 else 0}%",
+            'FB%': f"{round((batted_data['BattedType'] == 'FlyBall').sum() / total_bip * 100, 1) if total_bip > 0 else 0}%",
+            'Hard%': f"{round((batted_data['ExitSpeed'] >= 95).sum() / total_bip * 100, 1) if total_bip > 0 else 0}%",
+            'Soft%': f"{round((batted_data['ExitSpeed'] < 95).sum() / total_bip * 100, 1) if total_bip > 0 else 0}%",
+            'Contact%': f"{round(calculate_contact(pitcher_data), 1)}%",
+            'BAA': round(baa, 3),
+            'OPS': round(ops, 3)
         }
-        all_row_df = pd.DataFrame([all_row])
-        batted_ball_summary = pd.concat([batted_ball_summary, all_row_df], ignore_index=True)
 
-        # Format the data for display
+        # Append and display
+        batted_ball_summary = pd.concat([batted_ball_summary, pd.DataFrame([all_row])], ignore_index=True)
         formatted_data = format_dataframe(batted_ball_summary)
-
-        # Display the table in Streamlit
         st.subheader("Batted Ball Summary")
         st.dataframe(formatted_data)
 
     except Exception as e:
         st.error(f"Error generating batted ball table: {e}")
+
 
 
 
