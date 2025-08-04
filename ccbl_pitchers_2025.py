@@ -676,7 +676,7 @@ def plot_pitch_movement(pitcher_name, batter_side, strikes, balls, date_filter_o
                     line=dict(width=1, color="white")  # White edge for better contrast
                 ),
                 text=pitch_data.apply(
-                    lambda row: f"Date: {row['Date']}<br>RelSpeed: {row['RelSpeed']}<br>iVB: {row['InducedVertBreak']}<br>HB: {row['HorzBreak']}<br>Pitch#: {row['PitchNo']}",
+                    lambda row: f"Date: {row['Date']}<br>RelSpeed: {row['RelSpeed']}<br>iVB: {row['InducedVertBreak']}<br>HB: {row['HorzBreak']}<br>Spin: {row['SpinRate']}<br>Pitch#: {row['PitchNo']}",
                     axis=1
                 ),
                 hoverinfo='text'
