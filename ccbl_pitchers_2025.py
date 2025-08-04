@@ -22,7 +22,7 @@ def download_csv_from_drive():
 
 @st.cache_data
 def download_rolling_csv_from_drive():
-    url = "https://drive.google.com/uc?id=1Z9u0_-EOO7kQwHSBn2HG0zs0tk5qgTyA"
+    url = "https://drive.google.com/uc?id=1Z6PPGC2i7X2YQLbVs3qxnoqaWswMjM7d"
     output = "CCBL_2025_xRV+_by_date.csv"
     if not os.path.exists(output):
         gdown.download(url, output, quiet=False)
